@@ -5,7 +5,6 @@ const app = require('../app')
 const api = supertest(app)
 
 const Blog = require('../models/blog')
-const { application } = require('express')
 
 beforeEach(async () => {
     await Blog.deleteMany({})
@@ -33,9 +32,17 @@ describe('test blog api get requests', () => {
 
         expect(response.body[0].likes).toEqual(helper.multipleBlogList[0].likes)
     })    
+
+    test('blogs are returned with id property not _id', async () => {
+        const response = await api.get('/api/blogs')
+
+        expect(response.body[0].id).toBeDefined()
+
+        expect(response.body[0]._id).not.toBeDefined()
+    })
 })
 
-describe('test blog api put', () => {
+describe('test blog api post', () => {
 
     test('a valid blog can be added', async () => {
         const newBlog = {
