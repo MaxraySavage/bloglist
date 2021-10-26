@@ -15,19 +15,19 @@ beforeEach(async () => {
     }
 })
 
-describe('test blog api get requests', () => {
+describe('when there are some blogs in the database', () => {
 
     test('blogs are returned as json', async () => {
         await api.get('/api/blogs').expect(200).expect('Content-Type', /application\/json/)
     })
 
-    test('db contains correct number of blogs', async () => {
+    test('all blogs are returned', async () => {
         const response = await api.get('/api/blogs')
 
         expect(response.body).toHaveLength(helper.multipleBlogList.length)
     })
 
-    test('the first blog in list contains correct number of likes', async () => {
+    test('a specific blog is within the returned blogs', async () => {
         const response = await api.get('/api/blogs')
 
         expect(response.body[0].likes).toEqual(helper.multipleBlogList[0].likes)
@@ -42,9 +42,9 @@ describe('test blog api get requests', () => {
     })
 })
 
-describe('test blog api post', () => {
+describe('addition of a new blog', () => {
 
-    test('a valid blog can be added', async () => {
+    test('succeeds with valid data', async () => {
         const newBlog = {
             title: 'I love to dream',
             author: 'Genji',
@@ -65,7 +65,89 @@ describe('test blog api post', () => {
         expect(titles).toContain(newBlog.title)
     })
 
+    test('sets likes to 0 by default', async () => {
+        const newBlog = {
+            title: 'I love to dream',
+            author: 'Genji',
+            url: 'www.example.com',
+        }
 
+        await api
+            .post('/api/blogs')
+            .send(newBlog)
+            .expect(201)
+            .expect('Content-Type', /application\/json/)
+
+        const blogsAtEnd = await helper.blogsInDb()
+        const addedBlog = blogsAtEnd.find(blog => blog.author === 'Genji')
+        expect(addedBlog.likes).toEqual(0)
+    })
+
+    test('fails with status code 400 if data invaild', async () => {
+        const missingTitle = {
+            author: 'Genji',
+            url: 'www.example.com',
+            likes: 132,
+        }
+
+        const missingUrl = {
+            title: 'I love to dream',
+            author: 'Genji',
+            likes: 132,
+        }
+
+        await api
+            .post('/api/blogs')
+            .send(missingTitle)
+            .expect(400)
+
+        await api
+            .post('/api/blogs')
+            .send(missingUrl)
+            .expect(400)
+
+        const blogsAtEnd = await helper.blogsInDb()
+        expect(blogsAtEnd).toHaveLength(helper.multipleBlogList.length)
+    })
+})
+
+describe('deletion of a blog', () => {
+    test('succeeds with status code 204 if id is valid', async () => {
+        const blogsAtStart = await helper.blogsInDb()
+        const blogToDelete = blogsAtStart[0]
+    
+        await api
+            .delete(`/api/blogs/${blogToDelete.id}`)
+            .expect(204)
+    
+        const blogsAtEnd = await helper.blogsInDb()
+    
+        expect(blogsAtEnd).toHaveLength(
+            helper.multipleBlogList.length - 1
+        )
+    
+        const contents = blogsAtEnd.map(r => r.title)
+    
+        expect(contents).not.toContain(blogToDelete.title)
+    })
+})
+
+describe('updating a blog', () => {
+    test('succeeds if id is valid', async () => {
+        const blogsAtStart = await helper.blogsInDb()
+        const blogToChange = blogsAtStart[0]
+        blogToChange.likes = blogToChange.likes + 1
+
+        await api
+            .put(`/api/blogs/${blogToChange.id}`)
+            .send(blogToChange)
+            .expect(200)
+
+        const blogsAtEnd = await helper.blogsInDb()
+
+        const changedBlog = blogsAtEnd.find(blog => blog.id === blogToChange.id)
+        expect(changedBlog.likes).toEqual(blogToChange.likes)
+    })
 })
 
 afterAll(  async () => {
