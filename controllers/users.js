@@ -5,6 +5,12 @@ const User = require('../models/user')
 usersRouter.post('/', async (request, response) => {
     const body = request.body
 
+    if(!body.password || body.password.length < 5) {
+        return response.status(400).json({
+            error: body.password ? 'password must be at least 5 characters' : 'must include password'
+        })
+    }
+
     const saltRounds = 12
     const passwordHash = await bcrypt.hash(body.password, saltRounds)
 
@@ -12,6 +18,7 @@ usersRouter.post('/', async (request, response) => {
         username: body.username,
         name: body.name,
         passwordHash,
+        notes: body.notes || []
     })
 
     const savedUser = await user.save()
