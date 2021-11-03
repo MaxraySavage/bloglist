@@ -6,7 +6,8 @@ const {authenticateToken} = require('../utils/middleware')
 
 
 blogsRouter.get('/', authenticateToken, async(request, response) => {
-    const blogs = await Blog.find({user: request.user.id})
+    const user = await User.findById(request.user.id)
+    const blogs = await Blog.find({user: user.id})
     response.json(blogs)
 })
   
@@ -31,13 +32,7 @@ blogsRouter.post('/', authenticateToken, async (request, response) => {
 })
 
 blogsRouter.delete('/:id', authenticateToken, async (request, response) => {
-    const token = request.token
-    const decodedToken = jwt.verify(token, process.env.SECRET)
-    if (!token || !decodedToken.id) {
-        return response.status(401).json({ error: 'token missing or invalid' })
-    }
-    
-    const user = await User.findById(decodedToken.id)
+    const user = await User.findById(request.user.id)
     const blog = await Blog.findById(request.params.id)
 
     if (blog.user.toString() === user.id) {

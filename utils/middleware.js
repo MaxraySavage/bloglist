@@ -23,9 +23,9 @@ const authenticateToken = async (request, response, next) => {
     const token = authHeader && authHeader.split(' ')[1]
     if(token === null) return response.sendStatus(401)
 
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, id) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, user) => {
         if(err) return response.sendStatus(403)
-        request.user =  await User.findById(id)
+        request.user =  await User.findById(user.id)
         next()
     })
 }
